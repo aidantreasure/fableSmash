@@ -6,10 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="shortcut icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
   <link rel="shortcut icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+
+  <style>
+    body {
+       color: #61443e;
+       font-family:Monospace;
+       font-size:13px;
+       text-align:center;
+       background-color: #bfd1e5;
+       margin: 0px;
+       overflow: hidden;
+    }
+    #info {
+       position: absolute;
+       top: 0px; width: 100%;
+       padding: 5px;
+    }
+    a {
+       color: #a06851;
+    }
+  </style>
 </head>
 <body>
-  <h1>Using HTML5 Canvas</h1>
-  <canvas align="center" id="canvas" width="1000" height="800"></canvas>
+  <div id="graphicsContainer"></div>
+  <!-- <canvas align="center" id="container" width="1000" height="800"></canvas> -->
   <script src="bundle.js"></script>
 </body>
 </html>
