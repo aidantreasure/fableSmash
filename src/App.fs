@@ -81,12 +81,16 @@ let initOrthoCamera () =
 
 let initLights (scene:Three.Scene) =
 
-    let ambientLight = Three.AmbientLight(U2.Case2 "#3C3C3C", 1.0)
+    let ambientLight = Three.AmbientLight(U2.Case2 "#3C3C3C", 0.5)
     scene.add(ambientLight)
 
-    let spotLight = Three.SpotLight(U2.Case2 "#FFFFFF")
+    let spotLight = Three.SpotLight(U2.Case2 "grey")
     spotLight.position.set(-30., 60., 60.) |> ignore
     scene.add(spotLight)
+
+    // White directional light at half intensity shining from the top.
+    let directionalLight = Three.DirectionalLight(U2.Case2 "#FFFFFF", 0.5 );
+    scene.add( directionalLight );
 
 let initGeometry (scene:Three.Scene) x y =
 
@@ -223,13 +227,12 @@ let splitN n list =
         | (n, x::ys) -> inner (x::xs) (n-1, ys)
     inner [] (n, list)
 
-let splitP (predicate:'a -> bool) list =
-    let rec inner xs = function
-        | (false, ys) | (_, ([] as ys)) -> (List.rev xs), ys
-        | (true, x::ys) -> inner (x::xs) ((predicate x), ys)
-    inner [] (true, list)
+// let splitP (predicate:'a -> bool) list =
+//     let rec inner xs = function
+//         | (false, ys) | (_, ([] as ys)) -> (List.rev xs), ys
+//         | (true, x::ys) -> inner (x::xs) ((predicate x), ys)
+//     inner [] (true, list)
 
-    
 
 let addSparkle x y (scene:Three.Scene) =
 
@@ -300,12 +303,42 @@ let updateSparkles (sparkles:Sparkle list) duration delta =
 let itemNotInList pred list =
     Option.isNone (List.tryFind pred list)
 
-let randomDirection () =
+let textNotInList list text  = 
+    let res = itemNotInList (fun y -> text = y.text) list
+    res
+
+let escapeDirection () =
     let theta = rnd.NextDouble () * (Math.PI * 2.)
-    let z = (rnd.NextDouble() - 0.5) * 2.
-    let x = (sqrt (1. - (z*z))) * cos theta
-    let y = (sqrt (1. - (z*z))) * sin theta
+    let z = - abs ((rnd.NextDouble() - 0.5) * 2.)
+    let x = ((sqrt (1. - (z*z))) * (cos theta))
+    let y = abs ((sqrt (1. - (z*z))) * (sin theta))
     Three.Vector3(x,y,z)
+
+let debuggerer item =
+    Console.WriteLine((item :> obj).ToString())
+    item
+
+let createNewLetter duration x = 
+        let text = x
+        let props = createEmpty<Three.TextGeometryParameters>
+        props.font <- font.Value :?> Three.Font
+        
+        let textGeom = Three.TextGeometry(text, props)
+        
+        let matProps = createEmpty<Three.MeshBasicMaterialParameters>
+        matProps.color <- Some(U2.Case2("red"))
+        let material = Three.MeshBasicMaterial( matProps )
+        let geom = Three.BufferGeometry().fromGeometry(textGeom)
+        let mesh = Three.Mesh(geom , material )
+        mesh.position.set(-50.,50., 10.) |> ignore
+        scene.add( mesh );
+
+        { 
+            obj = mesh 
+            text = text
+            direction = (escapeDirection ())
+            age = duration
+        }
 
 let updateText texts duration delta =
 
@@ -314,44 +347,26 @@ let updateText texts duration delta =
             let nt =
                 Set.toSeq Keyboard.keysPressed
                 // have we made one recently?
-                |> Seq.filter (fun x -> itemNotInList (fun y -> x = y.text) texts)
+                |> Seq.filter (textNotInList texts)
                 // make the new ones
-                |> Seq.map (fun x -> 
-                    
-                        let text = x
-                        let props = createEmpty<Three.TextGeometryParameters>
-                        props.font <- font.Value :?> Three.Font
-                        
-                        let textGeom = Three.TextGeometry(text, props)
-                        
-                        let matProps = createEmpty<Three.MeshBasicMaterialParameters>
-                        matProps.color <- Some(U2.Case2("red"))
-                        let material = Three.MeshBasicMaterial( matProps )
-                        let geom = Three.BufferGeometry().fromGeometry(textGeom)
-                        let mesh = Three.Mesh(geom , material )
-                        mesh.position.set(-50.,50., 10.) |> ignore
-                        scene.add( mesh );
-
-
-                        { 
-                            obj = mesh 
-                            text = text
-                            direction = (randomDirection ())
-                            age = duration
-                        })
+                |> Seq.map (fun x -> createNewLetter duration x)                    
                 |> Seq.toList 
             List.append nt texts            
         else texts
 
-    let keep,remove = splitP (fun x -> (x.age + 1000.) > duration) texts
-    
-    List.iter (fun x -> (scene.remove x.obj)) remove
+    // let keep,remove = splitP (fun x -> (x.age + 1000.) < duration) texts
+    let keep = List.filter (fun x -> (x.age + 1000.) > duration) texts
+    let remove = List.filter (fun x -> (x.age + 1000.) <= duration) texts
+
+    List.iter (fun x -> 
+            (scene.remove x.obj)
+        ) remove
 
     List.iter (fun x -> 
             x.obj.position.addScaledVector (x.direction, delta / 10.) |> ignore
         ) keep
 
-    texts
+    keep
 
 let update state duration delta =
 
