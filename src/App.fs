@@ -11,39 +11,6 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Keyboard
 
-//open System.Diagnostics.CodeAnalysis
-
-// [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions", "*")>]
-// type IOrbitControls =
-//     abstract target: Three.Vector3 with get,     set
-//     abstract minPolarAngle: float with get, set
-//     abstract maxPolarAngle: float with get, set
-
-// let OrbitControls: JsConstructor<Three.Camera, Browser.HTMLElement, IOrbitControls> =
-//    importDefault "./lib/OrbitControls.js"
-
-
-// [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions", "*")>]
-// type IStats =
-//     abstract setMode: int -> unit
-//     abstract dom: Browser.HTMLElement with get
-//     abstract ``begin``: unit -> unit
-//     abstract ``end``: unit -> unit
-
-// let Stats: JsConstructor<IStats> =
-//    importDefault "../node_modules/stats.js/build/stats.min.js"
-
-
-// /// Represents the API exposed by FirstPersonControls script
-// [<System.Diagnostics.CodeAnalysis.SuppressMessage("NameConventions", "*")>]
-// type IFirstPersonControls =
-//     abstract movementSpeed: float with get, set
-//     abstract lookSpeed: float with get, set
-//     abstract handleResize: unit -> unit
-//     abstract update: float -> unit
-
-// let FirstPersonControls: JsConstructor<Three.Camera, Browser.HTMLElement, IFirstPersonControls> =
-//     importDefault "./lib/FirstPersonControls.js"
 
 type Sparkle = {
     obj : Three.Object3D;
@@ -64,14 +31,11 @@ let getWidth() = Browser.window.innerWidth
 let getHeight() = Browser.window.innerHeight
 
 let initCamera () =
-
-    let camera = Three.PerspectiveCamera(45.0, getWidth() / getHeight(), 0.01, 1000.0)
+    let camera = Three.PerspectiveCamera(45.0, getWidth() / getHeight(), 0.01, 2000.0)
     camera.matrixAutoUpdate <- true
     camera.rotationAutoUpdate <- true
     camera.position.z <- 2.0
-    camera.position.set(0.,150.,400.) |> ignore
-    
-
+    camera.position.set(0.,0.,400.) |> ignore
     camera
 
 let initOrthoCamera () =
@@ -81,41 +45,32 @@ let initOrthoCamera () =
 
 let initLights (scene:Three.Scene) =
 
-    let ambientLight = Three.AmbientLight(U2.Case2 "#3C3C3C", 0.5)
+    let ambientLight = Three.AmbientLight(U2.Case2 "#3C3C3C", 0.7)
     scene.add(ambientLight)
 
-    let spotLight = Three.SpotLight(U2.Case2 "grey")
-    spotLight.position.set(-30., 60., 60.) |> ignore
+    let spotLight = Three.SpotLight(U2.Case2 "grey", 1.)
+    spotLight.position.set(0., 0., 200.) |> ignore
+    spotLight.lookAt (Three.Vector3 (0., 0., 0.))
     scene.add(spotLight)
 
-    // White directional light at half intensity shining from the top.
-    let directionalLight = Three.DirectionalLight(U2.Case2 "#FFFFFF", 0.5 );
-    scene.add( directionalLight );
+    // // White directional light 
+    // let directionalLight = Three.DirectionalLight(U2.Case2 "#FFFFFF", 1. );
+    // scene.add( directionalLight );
 
 let initGeometry (scene:Three.Scene) x y =
-
     let cube = Three.BoxBufferGeometry(20.1, 20.1, 20.1)
-
     let matProps = createEmpty<Three.MeshLambertMaterialParameters>
     // let matProps = createEmpty<Three.MeshBasicMaterialParameters>
     matProps.color <- Some (U2.Case2 "#9430B3")
-
     
     let mesh = Three.Mesh(cube, Three.MeshLambertMaterial(matProps))
-    // mesh.position.set(x,y,0.) |> ignore
-    mesh.matrixAutoUpdate <- false
+    mesh.position.set(x,y,0.) |> ignore
     scene.add(mesh)
     
     mesh
 
 let initFloor (scene:Three.Scene) =
 
-    
-    // let floorTexture = Three.ImageUtils.Globals.loadTexture( "images/checkerboard.jpg" )
-    // floorTexture.wrapT <- Three.RepeatWrapping
-    // floorTexture.wrapS <- Three.RepeatWrapping
-    // floorTexture.repeat.set( 10., 10. ) |> ignore
-    
     let matProps = createEmpty<Three.MeshBasicMaterialParameters>
     // matProps.map <- Some(floorTexture)
     matProps.side <- Some(Three.DoubleSide)
@@ -158,11 +113,6 @@ let initOrtho () =
 
     scene, cameraOrtho, spotLight
 
-// let refreshFont font =
-//     let props = createEmpty<Three.TextGeometryParameters>
-//     Three.TextGeometry()
-//     ()
-
 let mutable font : obj Option = None
 
 let init() =
@@ -173,17 +123,17 @@ let init() =
     let camera = initCamera() 
     
     initLights scene
-    initFloor scene
-    let cube = initGeometry scene 50. 50. 
+    // initFloor scene
+    // let cube = initGeometry scene 50. 50. 
 
     let fontLoader = Three.FontLoader ()
     fontLoader.load("Montserrat_Bold.json", Func<string,_> (fun x ->  
                 font <- Some (x :> obj)
                 ) )
 
-    scene, camera, cube
+    scene, camera
 
-let scene,camera,cube = init()
+let scene,camera = init()
 let sceneOrtho, cameraOrtho, spotLightOrtho = initOrtho()
 let renderer = initRenderer()
 
@@ -219,8 +169,6 @@ let onMouseMove(e:Browser.MouseEvent):obj =
 Browser.document.addEventListener_mousemove(
     Func<_,_> onMouseMove, false)
 
-
-
 let splitN n list =
     let rec inner xs = function
         | (0, ys) | (_, ([] as ys)) -> (List.rev xs), ys
@@ -235,33 +183,22 @@ let splitN n list =
 
 
 let addSparkle x y (scene:Three.Scene) =
-
     let sphere = Three.BoxBufferGeometry(10.0, 10.0, 10.0)
-
     let matProps = createEmpty<Three.MeshLambertMaterialParameters>
     matProps.color <- Some (U2.Case2 "red")
     
     let mesh = Three.Mesh(sphere, Three.MeshLambertMaterial(matProps))
     mesh.position.set(x,y,-40.) |> ignore
-    //mesh.matrixAutoUpdate <- false
-    //let transformation = Three.Matrix4().makeTranslation(x, y, -40.);
-    //mesh.applyMatrix(transformation);
 
     scene.add(mesh)
-    
     mesh
 
 let updateSparkle (sparkle:Sparkle) duration delta =
-    // sparkle.obj.rotation.x <- Math.Sin( duration * 0.75 )
-    // sparkle.obj.rotation.y <- Math.Cos( duration * 0.55 )
-    // let rotation = Three.Matrix4().makeRotationAxis(Three.Vector3(1., 0., 0.), 0.4 );
-    // let transformation = Three.Matrix4().makeTranslation(0., 0., 0. );
-    // sparkle.obj.applyMatrix(transformation.multiply(rotation));
+
     sparkle.obj.position.addScaledVector (sparkle.direction, delta / 10.) |> ignore
     sparkle.obj.rotateX(delta / 10.) |> ignore
     sparkle.obj.rotateY(delta / 5.) |> ignore
     ()
-
 
 
 let rnd = Random();
@@ -303,34 +240,37 @@ let updateSparkles (sparkles:Sparkle list) duration delta =
 let itemNotInList pred list =
     Option.isNone (List.tryFind pred list)
 
-let textNotInList list text  = 
-    let res = itemNotInList (fun y -> text = y.text) list
+let keyboardDebounce list duration text  = 
+    let res = itemNotInList (fun y -> text = y.text && y.age + 300. > duration ) list
     res
+
+let letterStartingPosition () =
+    let x = (rnd.NextDouble() - 0.5) * 400.
+    let y = (rnd.NextDouble() - 0.5) * 200.
+
+    Three.Vector3(x,y,0.)
 
 let escapeDirection () =
     let theta = rnd.NextDouble () * (Math.PI * 2.)
     let z = - abs ((rnd.NextDouble() - 0.5) * 2.)
     let x = ((sqrt (1. - (z*z))) * (cos theta))
-    let y = abs ((sqrt (1. - (z*z))) * (sin theta))
+    let y = ((sqrt (1. - (z*z))) * (sin theta))
     Three.Vector3(x,y,z)
 
-let debuggerer item =
-    Console.WriteLine((item :> obj).ToString())
-    item
-
-let createNewLetter duration x = 
+let createNewLetter (scene:Three.Scene) duration x = 
         let text = x
         let props = createEmpty<Three.TextGeometryParameters>
         props.font <- font.Value :?> Three.Font
         
         let textGeom = Three.TextGeometry(text, props)
         
-        let matProps = createEmpty<Three.MeshBasicMaterialParameters>
+        let matProps = createEmpty<Three.MeshLambertMaterialParameters>
         matProps.color <- Some(U2.Case2("red"))
-        let material = Three.MeshBasicMaterial( matProps )
+        let material = Three.MeshLambertMaterial( matProps )
         let geom = Three.BufferGeometry().fromGeometry(textGeom)
         let mesh = Three.Mesh(geom , material )
-        mesh.position.set(-50.,50., 10.) |> ignore
+        //mesh.position.set(-20.,-20., 10.) |> ignore
+        mesh.position.add(letterStartingPosition ()) |> ignore
         scene.add( mesh );
 
         { 
@@ -339,6 +279,11 @@ let createNewLetter duration x =
             direction = (escapeDirection ())
             age = duration
         }
+let removeLetter (scene:Three.Scene) (letter:Letter) =
+    scene.remove (letter.obj)
+
+let updateLetter delta (letter:Letter) =
+    letter.obj.position.addScaledVector (letter.direction, delta / 10.) |> ignore
 
 let updateText texts duration delta =
 
@@ -347,36 +292,25 @@ let updateText texts duration delta =
             let nt =
                 Set.toSeq Keyboard.keysPressed
                 // have we made one recently?
-                |> Seq.filter (textNotInList texts)
+                |> Seq.filter (keyboardDebounce texts duration)
                 // make the new ones
-                |> Seq.map (fun x -> createNewLetter duration x)                    
+                |> Seq.map (fun x -> createNewLetter scene duration x)                    
                 |> Seq.toList 
             List.append nt texts            
         else texts
 
-    // let keep,remove = splitP (fun x -> (x.age + 1000.) < duration) texts
-    let keep = List.filter (fun x -> (x.age + 1000.) > duration) texts
-    let remove = List.filter (fun x -> (x.age + 1000.) <= duration) texts
+    let agePred x = (x.age + 10000.) > duration 
+    let inversePred (pred:'a->bool) (x:'a) = not (pred (x))
+    
+    let keep = List.filter agePred texts
+    let remove = List.filter (inversePred agePred)  texts
 
-    List.iter (fun x -> 
-            (scene.remove x.obj)
-        ) remove
-
-    List.iter (fun x -> 
-            x.obj.position.addScaledVector (x.direction, delta / 10.) |> ignore
-        ) keep
+    List.iter (removeLetter scene) remove
+    List.iter (updateLetter delta) keep
 
     keep
 
-let update state duration delta =
-
-    // let rotation = Three.Matrix4().makeRotationAxis(Three.Vector3(0., 1., 0.), 0.01 );
-    // let transformation = Three.Matrix4().makeTranslation(1., 0., 0. );
-    
-    // cube.applyMatrix(transformation.multiply(rotation));
-    // spotLightOrtho.position.x <- mouseX
-    // spotLightOrtho.position.y <- mouseY
-
+let update (state:Sparkle list * Letter list) duration delta =
     let sparkles = updateSparkles (fst state) duration delta
     let text = updateText (snd state) duration delta 
     sparkles,text
@@ -388,11 +322,14 @@ let render() =
     renderer.clearDepth()
     renderer.render(sceneOrtho, cameraOrtho)
 
-let rec animate sparkles text (prevDt:float) (dt:float) =
+let rec animate state (prevDt:float) (dt:float) =
 
-    let state = update (sparkles,text) dt (dt-prevDt)
+    let state = update state dt (dt-prevDt)
     render() 
-    Browser.window.requestAnimationFrame(Browser.FrameRequestCallback (animate (fst state) (snd state) dt)) |> ignore
+    Browser.window.requestAnimationFrame(Browser.FrameRequestCallback (animate state dt)) |> ignore
 
+
+// initial state
+let state = ([], [])
 // kick it off
-animate [] [] 0. 0.
+animate state 0. 0.
